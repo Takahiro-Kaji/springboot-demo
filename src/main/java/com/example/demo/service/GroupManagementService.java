@@ -1,4 +1,4 @@
-package com.example.service;
+package com.example.demo.service;
 
 import javax.naming.*;
 import javax.naming.directory.*;

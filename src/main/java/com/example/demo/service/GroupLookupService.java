@@ -1,4 +1,4 @@
-package com.example.service;
+package com.example.demo.service;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +23,7 @@ public class GroupLookupService extends ActiveDirectoryService {
             List<String> groupNames = new ArrayList<>();
             while (results.hasMore()) {
                 SearchResult sr = results.next();
+                System.out.println(sr.getNameInNamespace());
                 groupNames.add(sr.getNameInNamespace());
             }
             return groupNames;

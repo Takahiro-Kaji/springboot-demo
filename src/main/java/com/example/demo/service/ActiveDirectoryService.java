@@ -1,9 +1,13 @@
-package com.example.demo;
+package com.example.demo.service;
 
 import javax.naming.*;
 import javax.naming.directory.*;
+
+import org.springframework.stereotype.Service;
+
 import java.util.Hashtable;
 
+@Service
 public class ActiveDirectoryService {
     protected DirContext connect() throws NamingException {
         Hashtable<String, String> env = new Hashtable<>();

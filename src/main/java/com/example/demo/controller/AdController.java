@@ -1,18 +1,15 @@
-package com.example.controller;
-
-import org.springframework.stereotype.Controller;
+package com.example.demo.controller;
 
 import org.springframework.web.bind.annotation.*;
 
-import com.example.service.GroupLookupService;
-import com.example.service.GroupManagementService;
-import com.example.service.GroupMembershipService;
+import com.example.demo.service.GroupLookupService;
+import com.example.demo.service.GroupManagementService;
+import com.example.demo.service.GroupMembershipService;
 
 import javax.naming.NamingException;
 import java.util.List;
 import java.util.ArrayList;
 
-@Controller
 @RestController
 @RequestMapping("/api/groups")
 public class AdController {
@@ -21,7 +18,7 @@ public class AdController {
     private final GroupLookupService lookupService = new GroupLookupService();
     private final GroupMembershipService membershipService = new GroupMembershipService();
 
-    @GetMapping
+    @GetMapping("/ref")
     public List<String> listGroups() throws NamingException {
         List<String> groupNames = new ArrayList<>();
         lookupService.listGroups(); // listGroups で引数受け取れるよう修正必要
