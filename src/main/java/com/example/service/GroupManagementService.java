@@ -1,8 +1,11 @@
-package com.example.demo;
+package com.example.service;
 
 import javax.naming.*;
 import javax.naming.directory.*;
 
+import org.springframework.stereotype.Service;
+
+@Service
 public class GroupManagementService extends ActiveDirectoryService {
     public void createGroup(String groupCN) throws NamingException {
         DirContext ctx = connect();

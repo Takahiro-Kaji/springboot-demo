@@ -1,9 +1,12 @@
-package com.example.demo;
+package com.example.service;
 
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.*;
 
+import org.springframework.stereotype.Service;
+
+@Service
 public class GroupLookupService extends ActiveDirectoryService {
     public void listGroups() throws NamingException {
         DirContext ctx = connect();
