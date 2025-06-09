@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class GroupLookupService extends ActiveDirectoryService {
-    public void listGroups() throws NamingException {
+    public NamingEnumeration<SearchResult> listGroups() throws NamingException {
         DirContext ctx = connect();
         try {
             String base = "CN=Users,DC=sandbox,DC=local";
@@ -16,11 +16,7 @@ public class GroupLookupService extends ActiveDirectoryService {
             SearchControls sc = new SearchControls();
             sc.setSearchScope(SearchControls.SUBTREE_SCOPE);
 
-            NamingEnumeration<SearchResult> results = ctx.search(base, filter, sc);
-            while (results.hasMore()) {
-                SearchResult sr = results.next();
-                System.out.println("Group: " + sr.getNameInNamespace());
-            }
+           return ctx.search(base, filter, sc);
         } finally {
             ctx.close();
         }
