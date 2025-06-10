@@ -36,6 +36,10 @@ public class GroupManagementService extends ActiveDirectoryService {
 
             // distinguishedName を使ってオブジェクト作成
             String dn = "CN=" + groupCN + ",CN=Users,DC=sandbox,DC=local";
+
+            // 管理者の設定
+            attrs.put("managedBy", "CN=Administrator,CN=Users,DC=sandbox,DC=local");
+
             ctx.createSubcontext(dn, attrs);
 
         } finally {
