@@ -21,7 +21,7 @@ public class AdController {
     @GetMapping("/ref")
     public List<String> listGroups() throws NamingException {
         List<String> groupNames = new ArrayList<>();
-        lookupService.listGroups(); // listGroups で引数受け取れるよう修正必要
+        lookupService.listGroups(); 
         return groupNames;
     }
 
