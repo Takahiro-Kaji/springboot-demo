@@ -8,44 +8,44 @@ import java.util.function.Supplier;
 
 /**
  * リトライ機能を提供するユーティリティクラス
+ * 3回リトライ、1秒間隔の固定パターンで動作します
  */
 public class RetryUtil {
     
     private static final Logger logger = LoggerFactory.getLogger(RetryUtil.class);
     
     /**
-     * デフォルトの最大リトライ回数
+     * 最大リトライ回数
      */
-    private static final int DEFAULT_MAX_RETRIES = 3;
+    private static final int MAX_RETRIES = 3;
     
     /**
-     * デフォルトのリトライ間隔（ミリ秒）
+     * リトライ間隔（ミリ秒）
      */
-    private static final long DEFAULT_RETRY_DELAY = 1000;
+    private static final long RETRY_DELAY = 1000;
     
     /**
      * 指定された操作をリトライ可能なエラーが発生した場合にリトライする
+     * 3回リトライ、1秒間隔で実行されます
+     * 
+     * @param operation 実行する操作
+     * @param operationName 操作名（ログ出力用）
+     * @return 操作の結果
+     * @throws ActiveDirectoryException リトライ後も失敗した場合
      */
     public static <T> T retryOnError(Supplier<T> operation, String operationName) {
-        return retryOnError(operation, operationName, DEFAULT_MAX_RETRIES, DEFAULT_RETRY_DELAY);
-    }
-    
-    /**
-     * 指定された操作をリトライ可能なエラーが発生した場合にリトライする（カスタム設定）
-     */
-    public static <T> T retryOnError(Supplier<T> operation, String operationName, int maxRetries, long retryDelay) {
         int attempts = 0;
         
-        while (attempts < maxRetries) {
+        while (attempts < MAX_RETRIES) {
             try {
                 return operation.get();
             } catch (Exception e) {
                 attempts++;
                 
-                if (isRetryableError(e) && attempts < maxRetries) {
+                if (isRetryableError(e) && attempts < MAX_RETRIES) {
                     logger.warn("{} が失敗しました（試行回数: {}）: {}", operationName, attempts, e.getMessage());
                     try {
-                        Thread.sleep(retryDelay);
+                        Thread.sleep(RETRY_DELAY);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         throw new ActiveDirectoryException("リトライが中断されました", ie);
