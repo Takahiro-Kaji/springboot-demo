@@ -18,7 +18,13 @@ public class GroupMembershipService extends ActiveDirectoryService {
     
     @Autowired
     private AdProperty adProperty;
-    
+
+    // 成功ログ（追加成功したユーザーDN）
+    private final List<String> successLog = new ArrayList<>();
+
+    // 失敗ログ（失敗したバッチのユーザーDNリスト）
+    private final List<List<String>> failureLog = new ArrayList<>();
+
     /**
      * 指定されたユーザーCNに対応するDNを検索します
      * 
@@ -107,54 +113,93 @@ public class GroupMembershipService extends ActiveDirectoryService {
         }
     }
     
+
     /**
-     * 複数のユーザーを一度に指定されたグループに追加します
-     * 効率的な操作のため、複数のユーザーを一度のmodifyAttributes操作で追加します
+     * 複数のユーザーを指定されたグループに100人ずつ追加します。
+     * 成功・失敗のログは内部に記録され、コンソールには出力しません。
      * 
      * @param userCNs グループに追加するユーザーCNのリスト
      * @param groupCN 対象グループのCN
-     * @throws NamingException ユーザーまたはグループが見つからない場合、または操作中にエラーが発生した場合
+     * @throws NamingException 致命的なLDAPエラーが発生した場合（途中でも throw）
      */
     public void addMultipleUsersToGroup(List<String> userCNs, String groupCN) throws NamingException {
         try (DirContext ctx = connect()) {
             String groupDn = "CN=" + groupCN + "," + adProperty.getUsersDn();
             List<String> userDNs = findMultipleUserDNs(userCNs);
-            
-            // 複数のユーザーを一度に追加
-            ModificationItem[] mods = new ModificationItem[userDNs.size()];
-            int index = 0;
-            for (String userDN : userDNs) {
-                mods[index] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("member", userDN));
-                index++;
+
+            int batchSize = 100;
+            for (int i = 0; i < userDNs.size(); i += batchSize) {
+                int end = Math.min(i + batchSize, userDNs.size());
+                List<String> batch = userDNs.subList(i, end);
+
+                ModificationItem[] mods = new ModificationItem[batch.size()];
+                for (int j = 0; j < batch.size(); j++) {
+                    mods[j] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("member", batch.get(j)));
+                }
+
+                try {
+                    ctx.modifyAttributes(groupDn, mods);
+                    successLog.addAll(batch);  // 成功ログに記録
+                } catch (NamingException e) {
+                    failureLog.add(new ArrayList<>(batch));  // 失敗ログに記録
+                    // 続行（再throwしない）ことで部分成功を許容
+                }
             }
-            
-            ctx.modifyAttributes(groupDn, mods);
         }
+    }
+
+    // 成功したユーザーDNの一覧を取得
+    public List<String> getSuccessLog() {
+        return Collections.unmodifiableList(successLog);
+    }
+
+    // 失敗したユーザーDNのバッチ一覧を取得
+    public List<List<String>> getFailureLog() {
+        return Collections.unmodifiableList(failureLog);
     }
     
     /**
-     * 複数のユーザーを一度に指定されたグループから削除します
-     * 効率的な操作のため、複数のユーザーを一度のmodifyAttributes操作で削除します
-     * 
+     * 複数のユーザーを指定されたグループから1人ずつ削除します。
+     * 各ユーザーに対して個別に modifyAttributes を実行します。
+     *
      * @param userCNs グループから削除するユーザーCNのリスト
      * @param groupCN 対象グループのCN
-     * @throws NamingException ユーザーまたはグループが見つからない場合、または操作中にエラーが発生した場合
+     * @throws NamingException グループのDN取得や接続時に失敗した場合
      */
     public void removeMultipleUsersFromGroup(List<String> userCNs, String groupCN) throws NamingException {
         try (DirContext ctx = connect()) {
             String groupDn = "CN=" + groupCN + "," + adProperty.getUsersDn();
             List<String> userDNs = findMultipleUserDNs(userCNs);
-            
-            // 複数のユーザーを一度に削除
-            ModificationItem[] mods = new ModificationItem[userDNs.size()];
-            int index = 0;
-            for (String userDN : userDNs) {
-                mods[index] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("member", userDN));
-                index++;
+
+            int batchSize = 100;
+            for (int i = 0; i < userDNs.size(); i += batchSize) {
+                int end = Math.min(i + batchSize, userDNs.size());
+                List<String> batch = userDNs.subList(i, end);
+
+                ModificationItem[] mods = new ModificationItem[batch.size()];
+                for (int j = 0; j < batch.size(); j++) {
+                    mods[j] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("member", batch.get(j)));
+                }
+
+                try {
+                    ctx.modifyAttributes(groupDn, mods);
+                    successLog.addAll(batch);  // 成功ログに記録
+                } catch (NamingException e) {
+                    failureLog.add(new ArrayList<>(batch));  // 失敗ログに記録
+                    // 続行（再throwしない）ことで部分成功を許容
+                }
             }
-            
-            ctx.modifyAttributes(groupDn, mods);
         }
+    }
+
+        // 削除成功したユーザーDN一覧
+    public List<String> getRemoveSuccessLog() {
+        return Collections.unmodifiableList(successLog);
+    }
+
+    // 削除失敗したユーザーDN一覧
+    public List<String> getRemoveFailureLog() {
+        return Collections.unmodifiableList(failureLog);
     }
     
     /**
