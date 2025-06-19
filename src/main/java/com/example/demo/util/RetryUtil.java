@@ -63,11 +63,10 @@ public class RetryUtil {
      * リトライ可能なエラーかどうかを判定
      */
     private static boolean isRetryableError(Exception e) {
-        // 接続エラーや一時的なエラーはリトライ可能
-        String message = e.getMessage().toLowerCase();
-        return message.contains("connection") || 
-               message.contains("timeout") || 
-               message.contains("temporary") ||
-               message.contains("service unavailable");
+        // 例外の型で判定
+        return e instanceof javax.naming.CommunicationException ||
+               e instanceof javax.naming.ServiceUnavailableException ||
+               e instanceof javax.naming.TimeLimitExceededException ||
+               e instanceof javax.naming.directory.AttributeInUseException;
     }
 } 
