@@ -12,9 +12,9 @@ public class AdProperty {
     private String host;
     private String password;
     private String adminPrincipal;
-    private int port = 636;
-    private String baseDn = "DC=sandbox,DC=local";
-    private String usersOu = "CN=Users";
+    private int port;
+    private String baseDn;
+    private String usersOu;
     
     /**
      * 完全なプロバイダーURLを取得
