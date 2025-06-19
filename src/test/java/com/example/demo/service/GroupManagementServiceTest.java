@@ -50,8 +50,8 @@ class GroupManagementServiceTest {
     @BeforeEach
     void setUp() {
         // AdPropertyのモック設定
-        when(adProperty.getObjectDn(anyString())).thenReturn("CN=TestGroup,OU=Users,DC=example,DC=com");
-        when(adProperty.getAdminPrincipal()).thenReturn("CN=Admin,OU=Users,DC=example,DC=com");
+        doReturn("CN=TestGroup,OU=Users,DC=example,DC=com").when(adProperty).getObjectDn(anyString());
+        doReturn("CN=Admin,OU=Users,DC=example,DC=com").when(adProperty).getAdminPrincipal();
     }
 
     @Test
@@ -106,19 +106,19 @@ class GroupManagementServiceTest {
         );
 
         // 検索結果のモック設定
-        when(mockSearchResults.hasMore()).thenReturn(true, false);
-        when(mockSearchResult.getAttributes()).thenReturn(mockAttributes);
-        when(mockAttributes.get("member")).thenReturn(mockMemberAttribute);
-        when(mockMemberAttribute.getAll()).thenReturn(mockMemberEnumeration);
-        when(mockMemberEnumeration.hasMore()).thenReturn(true, true, false);
-        when(mockMemberEnumeration.next()).thenReturn(
+        doReturn(true, false).when(mockSearchResults).hasMore();
+        doReturn(mockAttributes).when(mockSearchResult).getAttributes();
+        doReturn(mockMemberAttribute).when(mockAttributes).get("member");
+        doReturn(mockMemberEnumeration).when(mockMemberAttribute).getAll();
+        doReturn(true, true, false).when(mockMemberEnumeration).hasMore();
+        doReturn(
             "CN=user1,OU=Users,DC=example,DC=com",
             "CN=user2,OU=Users,DC=example,DC=com"
-        );
-        when(mockSearchResults.next()).thenReturn(mockSearchResult);
+        ).when(mockMemberEnumeration).next();
+        doReturn(mockSearchResult).when(mockSearchResults).next();
 
         // レスポンスコントロールのモック設定（ページング終了）
-        when(mockContext.getResponseControls()).thenReturn(null);
+        doReturn(null).when(mockContext).getResponseControls();
 
         // メソッドの実行
         List<String> result = groupManagementService.getGroupMembers(groupCN);
@@ -139,23 +139,23 @@ class GroupManagementServiceTest {
         );
 
         // 1ページ目の検索結果
-        when(mockSearchResults.hasMore()).thenReturn(true, false);
-        when(mockSearchResult.getAttributes()).thenReturn(mockAttributes);
-        when(mockAttributes.get("member")).thenReturn(mockMemberAttribute);
-        when(mockMemberAttribute.getAll()).thenReturn(mockMemberEnumeration);
-        when(mockMemberEnumeration.hasMore()).thenReturn(true, false);
-        when(mockMemberEnumeration.next()).thenReturn("CN=user1,OU=Users,DC=example,DC=com");
-        when(mockSearchResults.next()).thenReturn(mockSearchResult);
+        doReturn(true, false).when(mockSearchResults).hasMore();
+        doReturn(mockAttributes).when(mockSearchResult).getAttributes();
+        doReturn(mockMemberAttribute).when(mockAttributes).get("member");
+        doReturn(mockMemberEnumeration).when(mockMemberAttribute).getAll();
+        doReturn(true, false).when(mockMemberEnumeration).hasMore();
+        doReturn("CN=user1,OU=Users,DC=example,DC=com").when(mockMemberEnumeration).next();
+        doReturn(mockSearchResult).when(mockSearchResults).next();
 
         // 2ページ目の検索結果
-        when(mockSearchResults.hasMore()).thenReturn(true, false);
-        when(mockMemberEnumeration.hasMore()).thenReturn(true, false);
-        when(mockMemberEnumeration.next()).thenReturn("CN=user2,OU=Users,DC=example,DC=com");
+        doReturn(true, false).when(mockSearchResults).hasMore();
+        doReturn(true, false).when(mockMemberEnumeration).hasMore();
+        doReturn("CN=user2,OU=Users,DC=example,DC=com").when(mockMemberEnumeration).next();
 
         // ページングコントロールのモック設定
         PagedResultsResponseControl mockResponseControl = mock(PagedResultsResponseControl.class);
-        when(mockResponseControl.getCookie()).thenReturn(new byte[0]); // 終了を示す空のcookie
-        when(mockContext.getResponseControls()).thenReturn(new Control[]{mockResponseControl});
+        doReturn(new byte[0]).when(mockResponseControl).getCookie(); // 終了を示す空のcookie
+        doReturn(new Control[]{mockResponseControl}).when(mockContext).getResponseControls();
 
         // メソッドの実行
         List<String> result = groupManagementService.getGroupMembers(groupCN);
@@ -173,14 +173,14 @@ class GroupManagementServiceTest {
         int expectedCount = 1500;
 
         // 検索結果のモック設定
-        when(mockSearchResults.hasMore()).thenReturn(true, false);
-        when(mockSearchResult.getAttributes()).thenReturn(mockAttributes);
-        when(mockAttributes.get("member")).thenReturn(mockMemberAttribute);
-        when(mockMemberAttribute.size()).thenReturn(expectedCount);
-        when(mockSearchResults.next()).thenReturn(mockSearchResult);
+        doReturn(true, false).when(mockSearchResults).hasMore();
+        doReturn(mockAttributes).when(mockSearchResult).getAttributes();
+        doReturn(mockMemberAttribute).when(mockAttributes).get("member");
+        doReturn(expectedCount).when(mockMemberAttribute).size();
+        doReturn(mockSearchResult).when(mockSearchResults).next();
 
         // レスポンスコントロールのモック設定（ページング終了）
-        when(mockContext.getResponseControls()).thenReturn(null);
+        doReturn(null).when(mockContext).getResponseControls();
 
         // メソッドの実行
         int result = groupManagementService.getGroupMemberCount(groupCN);
@@ -197,20 +197,20 @@ class GroupManagementServiceTest {
         int expectedTotalCount = 2500;
 
         // 1ページ目の検索結果
-        when(mockSearchResults.hasMore()).thenReturn(true, false);
-        when(mockSearchResult.getAttributes()).thenReturn(mockAttributes);
-        when(mockAttributes.get("member")).thenReturn(mockMemberAttribute);
-        when(mockMemberAttribute.size()).thenReturn(1000);
-        when(mockSearchResults.next()).thenReturn(mockSearchResult);
+        doReturn(true, false).when(mockSearchResults).hasMore();
+        doReturn(mockAttributes).when(mockSearchResult).getAttributes();
+        doReturn(mockMemberAttribute).when(mockAttributes).get("member");
+        doReturn(1000).when(mockMemberAttribute).size();
+        doReturn(mockSearchResult).when(mockSearchResults).next();
 
         // 2ページ目の検索結果
-        when(mockSearchResults.hasMore()).thenReturn(true, false);
-        when(mockMemberAttribute.size()).thenReturn(1500);
+        doReturn(true, false).when(mockSearchResults).hasMore();
+        doReturn(1500).when(mockMemberAttribute).size();
 
         // ページングコントロールのモック設定
         PagedResultsResponseControl mockResponseControl = mock(PagedResultsResponseControl.class);
-        when(mockResponseControl.getCookie()).thenReturn(new byte[0]); // 終了を示す空のcookie
-        when(mockContext.getResponseControls()).thenReturn(new Control[]{mockResponseControl});
+        doReturn(new byte[0]).when(mockResponseControl).getCookie(); // 終了を示す空のcookie
+        doReturn(new Control[]{mockResponseControl}).when(mockContext).getResponseControls();
 
         // メソッドの実行
         int result = groupManagementService.getGroupMemberCount(groupCN);
@@ -297,13 +297,13 @@ class GroupManagementServiceTest {
         String groupDN = "CN=testGroup,OU=Users,DC=example,DC=com";
 
         // 空のグループの検索結果
-        when(mockSearchResults.hasMore()).thenReturn(true, false);
-        when(mockSearchResult.getAttributes()).thenReturn(mockAttributes);
-        when(mockAttributes.get("member")).thenReturn(null); // member属性が存在しない
-        when(mockSearchResults.next()).thenReturn(mockSearchResult);
+        doReturn(true, false).when(mockSearchResults).hasMore();
+        doReturn(mockAttributes).when(mockSearchResult).getAttributes();
+        doReturn(null).when(mockAttributes).get("member"); // member属性が存在しない
+        doReturn(mockSearchResult).when(mockSearchResults).next();
 
         // レスポンスコントロールのモック設定（ページング終了）
-        when(mockContext.getResponseControls()).thenReturn(null);
+        doReturn(null).when(mockContext).getResponseControls();
 
         // メソッドの実行
         List<String> result = groupManagementService.getGroupMembers(groupCN);
@@ -320,13 +320,13 @@ class GroupManagementServiceTest {
         String groupDN = "CN=testGroup,OU=Users,DC=example,DC=com";
 
         // 空のグループの検索結果
-        when(mockSearchResults.hasMore()).thenReturn(true, false);
-        when(mockSearchResult.getAttributes()).thenReturn(mockAttributes);
-        when(mockAttributes.get("member")).thenReturn(null); // member属性が存在しない
-        when(mockSearchResults.next()).thenReturn(mockSearchResult);
+        doReturn(true, false).when(mockSearchResults).hasMore();
+        doReturn(mockAttributes).when(mockSearchResult).getAttributes();
+        doReturn(null).when(mockAttributes).get("member"); // member属性が存在しない
+        doReturn(mockSearchResult).when(mockSearchResults).next();
 
         // レスポンスコントロールのモック設定（ページング終了）
-        when(mockContext.getResponseControls()).thenReturn(null);
+        doReturn(null).when(mockContext).getResponseControls();
 
         // メソッドの実行
         int result = groupManagementService.getGroupMemberCount(groupCN);

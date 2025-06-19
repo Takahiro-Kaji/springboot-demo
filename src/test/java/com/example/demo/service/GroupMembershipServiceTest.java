@@ -48,8 +48,8 @@ class GroupMembershipServiceTest {
     @BeforeEach
     void setUp() {
         // AdPropertyのモック設定
-        when(adProperty.getUsersDn()).thenReturn("OU=Users,DC=example,DC=com");
-        when(adProperty.getObjectDn(anyString())).thenReturn("CN=TestGroup,OU=Users,DC=example,DC=com");
+        doReturn("OU=Users,DC=example,DC=com").when(adProperty).getUsersDn();
+        doReturn("CN=TestGroup,OU=Users,DC=example,DC=com").when(adProperty).getObjectDn(anyString());
     }
 
     @Test
@@ -61,9 +61,9 @@ class GroupMembershipServiceTest {
         String groupDN = "CN=testGroup,OU=Users,DC=example,DC=com";
 
         // ユーザー検索のモック設定
-        when(mockSearchResults.hasMore()).thenReturn(true);
-        when(mockSearchResult.getNameInNamespace()).thenReturn(userDN);
-        when(mockSearchResults.next()).thenReturn(mockSearchResult);
+        doReturn(true).when(mockSearchResults).hasMore();
+        doReturn(userDN).when(mockSearchResult).getNameInNamespace();
+        doReturn(mockSearchResult).when(mockSearchResults).next();
 
         // メソッドの実行
         groupMembershipService.addUserToGroup(userCN, groupCN);
@@ -81,9 +81,9 @@ class GroupMembershipServiceTest {
         String groupDN = "CN=testGroup,OU=Users,DC=example,DC=com";
 
         // ユーザー検索のモック設定
-        when(mockSearchResults.hasMore()).thenReturn(true);
-        when(mockSearchResult.getNameInNamespace()).thenReturn(userDN);
-        when(mockSearchResults.next()).thenReturn(mockSearchResult);
+        doReturn(true).when(mockSearchResults).hasMore();
+        doReturn(userDN).when(mockSearchResult).getNameInNamespace();
+        doReturn(mockSearchResult).when(mockSearchResults).next();
 
         // メソッドの実行
         groupMembershipService.removeUserFromGroup(userCN, groupCN);
@@ -100,16 +100,16 @@ class GroupMembershipServiceTest {
         String groupDN = "CN=testGroup,OU=Users,DC=example,DC=com";
 
         // 複数ユーザー検索のモック設定
-        when(mockSearchResults.hasMore()).thenReturn(true, true, true, false);
-        when(mockSearchResult.getNameInNamespace()).thenReturn(
+        doReturn(true, true, true, false).when(mockSearchResults).hasMore();
+        doReturn(
             "CN=user1,OU=Users,DC=example,DC=com",
             "CN=user2,OU=Users,DC=example,DC=com",
             "CN=user3,OU=Users,DC=example,DC=com"
-        );
-        when(mockSearchResult.getAttributes()).thenReturn(mockAttributes);
-        when(mockAttributes.get("cn")).thenReturn(mockAttribute);
-        when(mockAttribute.get()).thenReturn("user1", "user2", "user3");
-        when(mockSearchResults.next()).thenReturn(mockSearchResult);
+        ).when(mockSearchResult).getNameInNamespace();
+        doReturn(mockAttributes).when(mockSearchResult).getAttributes();
+        doReturn(mockAttribute).when(mockAttributes).get("cn");
+        doReturn("user1", "user2", "user3").when(mockAttribute).get();
+        doReturn(mockSearchResult).when(mockSearchResults).next();
 
         // メソッドの実行
         groupMembershipService.addMultipleUsersToGroup(userCNs, groupCN);
@@ -134,16 +134,16 @@ class GroupMembershipServiceTest {
         String groupDN = "CN=testGroup,OU=Users,DC=example,DC=com";
 
         // 複数ユーザー検索のモック設定
-        when(mockSearchResults.hasMore()).thenReturn(true, true, true, false);
-        when(mockSearchResult.getNameInNamespace()).thenReturn(
+        doReturn(true, true, true, false).when(mockSearchResults).hasMore();
+        doReturn(
             "CN=user1,OU=Users,DC=example,DC=com",
             "CN=user2,OU=Users,DC=example,DC=com",
             "CN=user3,OU=Users,DC=example,DC=com"
-        );
-        when(mockSearchResult.getAttributes()).thenReturn(mockAttributes);
-        when(mockAttributes.get("cn")).thenReturn(mockAttribute);
-        when(mockAttribute.get()).thenReturn("user1", "user2", "user3");
-        when(mockSearchResults.next()).thenReturn(mockSearchResult);
+        ).when(mockSearchResult).getNameInNamespace();
+        doReturn(mockAttributes).when(mockSearchResult).getAttributes();
+        doReturn(mockAttribute).when(mockAttributes).get("cn");
+        doReturn("user1", "user2", "user3").when(mockAttribute).get();
+        doReturn(mockSearchResult).when(mockSearchResults).next();
 
         // メソッドの実行
         groupMembershipService.removeMultipleUsersFromGroup(userCNs, groupCN);
@@ -167,16 +167,16 @@ class GroupMembershipServiceTest {
         String groupCN = "testGroup";
 
         // 複数ユーザー検索のモック設定
-        when(mockSearchResults.hasMore()).thenReturn(true, true, true, false);
-        when(mockSearchResult.getNameInNamespace()).thenReturn(
+        doReturn(true, true, true, false).when(mockSearchResults).hasMore();
+        doReturn(
             "CN=user1,OU=Users,DC=example,DC=com",
             "CN=user2,OU=Users,DC=example,DC=com",
             "CN=user3,OU=Users,DC=example,DC=com"
-        );
-        when(mockSearchResult.getAttributes()).thenReturn(mockAttributes);
-        when(mockAttributes.get("cn")).thenReturn(mockAttribute);
-        when(mockAttribute.get()).thenReturn("user1", "user2", "user3");
-        when(mockSearchResults.next()).thenReturn(mockSearchResult);
+        ).when(mockSearchResult).getNameInNamespace();
+        doReturn(mockAttributes).when(mockSearchResult).getAttributes();
+        doReturn(mockAttribute).when(mockAttributes).get("cn");
+        doReturn("user1", "user2", "user3").when(mockAttribute).get();
+        doReturn(mockSearchResult).when(mockSearchResults).next();
 
         // modifyAttributesで例外をスロー
         doThrow(new NamingException("Test error")).when(mockContext).modifyAttributes(anyString(), any(ModificationItem[].class));
@@ -202,7 +202,7 @@ class GroupMembershipServiceTest {
         String groupCN = "testGroup";
 
         // ユーザーが見つからない場合のモック設定
-        when(mockSearchResults.hasMore()).thenReturn(false);
+        doReturn(false).when(mockSearchResults).hasMore();
 
         // メソッドの実行と例外の検証
         assertThrows(NamingException.class, () -> {
