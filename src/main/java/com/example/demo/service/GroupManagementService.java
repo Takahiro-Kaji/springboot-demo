@@ -83,57 +83,47 @@ public class GroupManagementService extends ActiveDirectoryService {
             int pageSize = 1000;
             byte[] cookie = null;
             
-            do {
-                // ページング制御を設定
+            for (byte[] cookie = null; ; ) {
+                // ページング制御
+                Control[] controls = new Control[]{
+                    new PagedResultsControl(pageSize, cookie, Control.CRITICAL)
+                };
+                ctx.setRequestControls(controls);
+
                 SearchControls searchControls = new SearchControls();
                 searchControls.setSearchScope(SearchControls.OBJECT_SCOPE);
                 searchControls.setReturningAttributes(new String[]{"member"});
-                searchControls.setCountLimit(pageSize);
-                
-                // ページング用のリクエスト制御
-                Control[] controls = new Control[1];
-                if (cookie != null) {
-                    // 継続的なページング
-                    PagedResultsControl pagedControl = new PagedResultsControl(pageSize, cookie, Control.CRITICAL);
-                    controls[0] = pagedControl;
-                } else {
-                    // 初回のページング
-                    PagedResultsControl pagedControl = new PagedResultsControl(pageSize, Control.CRITICAL);
-                    controls[0] = pagedControl;
-                }
-                
-                ctx.setRequestControls(controls);
-                
-                // グループのmember属性を検索
+
                 NamingEnumeration<SearchResult> results = ctx.search(groupDn, "(objectClass=group)", searchControls);
-                
+
                 if (results.hasMore()) {
                     SearchResult result = results.next();
                     Attribute memberAttr = result.getAttributes().get("member");
-                    
+
                     if (memberAttr != null) {
-                        NamingEnumeration<?> members = memberAttr.getAll();
-                        while (members.hasMore()) {
-                            String memberDn = members.next().toString();
-                            allMembers.add(memberDn);
-                        }
+                        totalCount += memberAttr.size();
                     }
                 }
-                
-                // 次のページがあるかチェック
+
+                // 次のページ用 cookie を取得
+                byte[] nextCookie = null;
                 Control[] responseControls = ctx.getResponseControls();
-                cookie = null;
                 if (responseControls != null) {
                     for (Control control : responseControls) {
                         if (control instanceof PagedResultsResponseControl) {
-                            PagedResultsResponseControl prrc = (PagedResultsResponseControl) control;
-                            cookie = prrc.getCookie();
+                            nextCookie = ((PagedResultsResponseControl) control).getCookie();
                             break;
                         }
                     }
                 }
-                
-            } while (cookie != null && cookie.length > 0);
+
+                if (nextCookie == null || nextCookie.length == 0) {
+                    break;
+                }
+
+                cookie = nextCookie;
+            }  
+
             
             return allMembers;
         }
@@ -154,7 +144,7 @@ public class GroupManagementService extends ActiveDirectoryService {
         int pageSize = 1000;
         byte[] cookie = null;
 
-        do {
+        for (byte[] cookie = null; cookie == null || cookie.length > 0; ) {
             // ページング制御
             Control[] controls = new Control[]{
                 new PagedResultsControl(pageSize, cookie, Control.CRITICAL)
@@ -164,7 +154,7 @@ public class GroupManagementService extends ActiveDirectoryService {
             SearchControls searchControls = new SearchControls();
             searchControls.setSearchScope(SearchControls.OBJECT_SCOPE);
             searchControls.setReturningAttributes(new String[]{"member"});
-            searchControls.setCountLimit(pageSize); // 必須ではないが明示
+            searchControls.setCountLimit(pageSize); // 明示的に設定
 
             NamingEnumeration<SearchResult> results = ctx.search(groupDn, "(objectClass=group)", searchControls);
 
@@ -180,18 +170,21 @@ public class GroupManagementService extends ActiveDirectoryService {
             }
 
             // 次ページの cookie を取得
-            cookie = null;
+            byte[] nextCookie = null;
             Control[] responseControls = ctx.getResponseControls();
             if (responseControls != null) {
                 for (Control control : responseControls) {
                     if (control instanceof PagedResultsResponseControl) {
-                        cookie = ((PagedResultsResponseControl) control).getCookie();
+                        nextCookie = ((PagedResultsResponseControl) control).getCookie();
                         break;
                     }
                 }
             }
 
-        } while (cookie != null && cookie.length > 0);
+            // 次ループ用に cookie 更新
+            cookie = nextCookie;
+        }
+
 
         return totalCount;
         }
