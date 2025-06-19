@@ -148,65 +148,52 @@ public class GroupManagementService extends ActiveDirectoryService {
      * @throws NamingException
      */
     public int getGroupMemberCount(String groupCN) throws NamingException {
-        try (DirContext ctx = connect()) {
-            String groupDn = adProperty.getObjectDn(groupCN);
-            int totalCount = 0;
-            
-            // ページング用の変数
-            int pageSize = 1000;
-            byte[] cookie = null;
-            
-            do {
-                // ページング用のリクエスト制御
-                Control[] controls = new Control[1];
-                if (cookie != null) {
-                    // 継続的なページング
-                    PagedResultsControl pagedControl = new PagedResultsControl(pageSize, cookie, Control.CRITICAL);
-                    controls[0] = pagedControl;
-                } else {
-                    // 初回のページング
-                    PagedResultsControl pagedControl = new PagedResultsControl(pageSize, Control.CRITICAL);
-                    controls[0] = pagedControl;
-                }
-                
-                ctx.setRequestControls(controls);
-                
-                // グループのmember属性を直接取得
-                Attributes attrs = ctx.getAttributes(groupDn, new String[]{"member"});
-                Attribute memberAttr = attrs.get("member");
-                
+    try (DirContext ctx = connect()) {
+        String groupDn = adProperty.getObjectDn(groupCN);
+        int totalCount = 0;
+        int pageSize = 1000;
+        byte[] cookie = null;
+
+        do {
+            // ページング制御
+            Control[] controls = new Control[]{
+                new PagedResultsControl(pageSize, cookie, Control.CRITICAL)
+            };
+            ctx.setRequestControls(controls);
+
+            SearchControls searchControls = new SearchControls();
+            searchControls.setSearchScope(SearchControls.OBJECT_SCOPE);
+            searchControls.setReturningAttributes(new String[]{"member"});
+            searchControls.setCountLimit(pageSize); // 必須ではないが明示
+
+            NamingEnumeration<SearchResult> results = ctx.search(groupDn, "(objectClass=group)", searchControls);
+
+            if (results.hasMore()) {
+                SearchResult result = results.next();
+                Attribute memberAttr = result.getAttributes().get("member");
+
                 if (memberAttr != null) {
-                    // このページのメンバー数をカウント
                     int pageCount = memberAttr.size();
                     totalCount += pageCount;
-                    
-                    // ログ出力（デバッグ用）
-                    System.out.println("Group: " + groupCN + " - Page count: " + pageCount + ", Total so far: " + totalCount);
+                    System.out.println("Page count: " + pageCount + ", Total so far: " + totalCount);
                 }
-                
-                // 次のページがあるかチェック
-                Control[] responseControls = ctx.getResponseControls();
-                cookie = null;
-                if (responseControls != null) {
-                    for (Control control : responseControls) {
-                        if (control instanceof PagedResultsResponseControl) {
-                            PagedResultsResponseControl prrc = (PagedResultsResponseControl) control;
-                            cookie = prrc.getCookie();
-                            break;
-                        }
+            }
+
+            // 次ページの cookie を取得
+            cookie = null;
+            Control[] responseControls = ctx.getResponseControls();
+            if (responseControls != null) {
+                for (Control control : responseControls) {
+                    if (control instanceof PagedResultsResponseControl) {
+                        cookie = ((PagedResultsResponseControl) control).getCookie();
+                        break;
                     }
                 }
-                
-            } while (cookie != null && cookie.length > 0);
-            
-            // 最終的な結果をログ出力
-            if (totalCount == 0) {
-                System.out.println("Warning: Group '" + groupCN + "' not found or has no members");
-            } else {
-                System.out.println("Group: " + groupCN + " - Total member count: " + totalCount);
             }
-            
-            return totalCount;
+
+        } while (cookie != null && cookie.length > 0);
+
+        return totalCount;
         }
     }
 }
