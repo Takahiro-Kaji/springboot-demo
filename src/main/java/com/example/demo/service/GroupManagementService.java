@@ -9,12 +9,30 @@ import org.springframework.stereotype.Service;
 import com.example.demo.config.AdProperty;
 import java.util.*;
 
+/**
+ * Active Directoryのグループ管理操作を提供するサービスクラス
+ * グループの作成、削除、名前変更、メンバー一覧取得、メンバー数取得をサポートします。
+ */
 @Service
 public class GroupManagementService extends ActiveDirectoryService {
     
     @Autowired
     private AdProperty adProperty;
     
+    /**
+     * 指定されたCNで新しいセキュリティグループを作成します
+     * グループには以下の属性が設定されます：
+     * - objectClass: top, group
+     * - sAMAccountName: グループCN
+     * - description: 説明文
+     * - groupType: セキュリティ有効なドメイングローバルグループ
+     * - mail: メールアドレス
+     * - displayName: 表示名
+     * - managedBy: 管理者
+     * 
+     * @param groupCN 作成するグループのCN（Common Name）
+     * @throws NamingException グループ作成中にエラーが発生した場合、または同名のグループが既に存在する場合
+     */
     public void createGroup(String groupCN) throws NamingException {
         try (DirContext ctx = connect()) {
             Attributes attrs = new BasicAttributes(true);
@@ -51,6 +69,13 @@ public class GroupManagementService extends ActiveDirectoryService {
         }
     }
 
+    /**
+     * 指定されたCNのグループを削除します
+     * 注意：グループにメンバーが存在する場合でも削除されます
+     * 
+     * @param groupCN 削除するグループのCN
+     * @throws NamingException グループが見つからない場合、または削除中にエラーが発生した場合
+     */
     public void deleteGroup(String groupCN) throws NamingException {
         try (DirContext ctx = connect()) {
             String dn = adProperty.getObjectDn(groupCN);
@@ -58,6 +83,13 @@ public class GroupManagementService extends ActiveDirectoryService {
         }
     }
 
+    /**
+     * グループの名前を変更します
+     * 
+     * @param oldCN 変更前のグループCN
+     * @param newCN 変更後のグループCN
+     * @throws NamingException 元のグループが見つからない場合、または新しい名前のグループが既に存在する場合
+     */
     public void renameGroup(String oldCN, String newCN) throws NamingException {
         try (DirContext ctx = connect()) {
             String oldDn = adProperty.getObjectDn(oldCN);
@@ -67,12 +99,12 @@ public class GroupManagementService extends ActiveDirectoryService {
     }
     
     /**
-     * セキュリティグループのメンバー一覧を取得
-     * 1000人ずつ取得して、全メンバーを取得する
+     * セキュリティグループのメンバー一覧を取得します
+     * 1000人を超えるグループでも全メンバーを取得するため、ページング制御を使用します
      * 
      * @param groupCN グループのCN
-     * @return メンバーのDN一覧
-     * @throws NamingException
+     * @return メンバーのDN（Distinguished Name）一覧
+     * @throws NamingException グループが見つからない場合、または検索中にエラーが発生した場合
      */
     public List<String> getGroupMembers(String groupCN) throws NamingException {
         try (DirContext ctx = connect()) {
@@ -130,12 +162,12 @@ public class GroupManagementService extends ActiveDirectoryService {
     }
     
     /**
-     * セキュリティグループのメンバー数を取得
-     * 1000人を超えるグループでも正確な数を取得するため、ページング制御を使用
+     * セキュリティグループのメンバー数を取得します
+     * 1000人を超えるグループでも正確な数を取得するため、ページング制御を使用します
      * 
      * @param groupCN グループのCN
      * @return メンバー数
-     * @throws NamingException
+     * @throws NamingException グループが見つからない場合、または検索中にエラーが発生した場合
      */
     public int getGroupMemberCount(String groupCN) throws NamingException {
     try (DirContext ctx = connect()) {

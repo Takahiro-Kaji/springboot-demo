@@ -9,12 +9,23 @@ import java.util.*;
 
 import com.example.demo.config.AdProperty;
 
+/**
+ * Active Directoryのグループメンバーシップ操作を提供するサービスクラス
+ * ユーザーのグループへの追加・削除、複数ユーザーの一括操作をサポートします。
+ */
 @Service
 public class GroupMembershipService extends ActiveDirectoryService {
     
     @Autowired
     private AdProperty adProperty;
     
+    /**
+     * 指定されたユーザーCNに対応するDNを検索します
+     * 
+     * @param userCN 検索対象のユーザーCN
+     * @return ユーザーのDN（Distinguished Name）
+     * @throws NamingException ユーザーが見つからない場合、または検索中にエラーが発生した場合
+     */
     private String findUserDN(String userCN) throws NamingException {
         try (DirContext ctx = connect()) {
             String searchBase = adProperty.getUsersDn();
@@ -36,7 +47,12 @@ public class GroupMembershipService extends ActiveDirectoryService {
     }
     
     /**
-     * 複数のユーザーCNを指定して、対応するDNを一括検索
+     * 複数のユーザーCNを指定して、対応するDNを一括検索します
+     * 効率的な検索のため、OR条件を使用して一度のクエリで複数ユーザーを検索します
+     * 
+     * @param userCNs 検索対象のユーザーCNのリスト
+     * @return ユーザーCNの順序に対応するDNのリスト
+     * @throws NamingException 一部または全てのユーザーが見つからない場合、または検索中にエラーが発生した場合
      */
     private List<String> findMultipleUserDNs(List<String> userCNs) throws NamingException {
         try (DirContext ctx = connect()) {
@@ -92,7 +108,12 @@ public class GroupMembershipService extends ActiveDirectoryService {
     }
     
     /**
-     * 複数のユーザーを一度にグループに追加
+     * 複数のユーザーを一度に指定されたグループに追加します
+     * 効率的な操作のため、複数のユーザーを一度のmodifyAttributes操作で追加します
+     * 
+     * @param userCNs グループに追加するユーザーCNのリスト
+     * @param groupCN 対象グループのCN
+     * @throws NamingException ユーザーまたはグループが見つからない場合、または操作中にエラーが発生した場合
      */
     public void addMultipleUsersToGroup(List<String> userCNs, String groupCN) throws NamingException {
         try (DirContext ctx = connect()) {
@@ -112,7 +133,12 @@ public class GroupMembershipService extends ActiveDirectoryService {
     }
     
     /**
-     * 複数のユーザーを一度にグループから削除
+     * 複数のユーザーを一度に指定されたグループから削除します
+     * 効率的な操作のため、複数のユーザーを一度のmodifyAttributes操作で削除します
+     * 
+     * @param userCNs グループから削除するユーザーCNのリスト
+     * @param groupCN 対象グループのCN
+     * @throws NamingException ユーザーまたはグループが見つからない場合、または操作中にエラーが発生した場合
      */
     public void removeMultipleUsersFromGroup(List<String> userCNs, String groupCN) throws NamingException {
         try (DirContext ctx = connect()) {
@@ -131,6 +157,13 @@ public class GroupMembershipService extends ActiveDirectoryService {
         }
     }
     
+    /**
+     * 指定されたユーザーを指定されたグループに追加します
+     * 
+     * @param userCN グループに追加するユーザーのCN
+     * @param groupCN 対象グループのCN
+     * @throws NamingException ユーザーまたはグループが見つからない場合、または操作中にエラーが発生した場合
+     */
     public void addUserToGroup(String userCN, String groupCN) throws NamingException {
         try (DirContext ctx = connect()) {
             String groupDn = "CN=" + groupCN + "," + adProperty.getUsersDn();
@@ -142,6 +175,13 @@ public class GroupMembershipService extends ActiveDirectoryService {
         }
     }
 
+    /**
+     * 指定されたユーザーを指定されたグループから削除します
+     * 
+     * @param userCN グループから削除するユーザーのCN
+     * @param groupCN 対象グループのCN
+     * @throws NamingException ユーザーまたはグループが見つからない場合、または操作中にエラーが発生した場合
+     */
     public void removeUserFromGroup(String userCN, String groupCN) throws NamingException {
         try (DirContext ctx = connect()) {
             String groupDn = "CN=" + groupCN + "," + adProperty.getUsersDn();
