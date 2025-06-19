@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: demo
+
+# Active Directory Configuration
+ad:
+  host: ${AD_HOST:localhost}
+  password: ${AD_PASSWORD:password}
+  admin-principal: CN=Administrator,CN=Users,DC=sandbox,DC=local
+  port: 636
+  base-dn: DC=sandbox,DC=local
+  users-ou: CN=Users 

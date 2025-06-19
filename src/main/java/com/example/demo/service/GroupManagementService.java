@@ -3,10 +3,17 @@ package com.example.demo.service;
 import javax.naming.*;
 import javax.naming.directory.*;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.example.demo.config.AdProperty;
 
 @Service
 public class GroupManagementService extends ActiveDirectoryService {
+    
+    @Autowired
+    private AdProperty adProperty;
+    
     public void createGroup(String groupCN) throws NamingException {
         DirContext ctx = connect();
         try {
@@ -35,10 +42,10 @@ public class GroupManagementService extends ActiveDirectoryService {
             attrs.put("displayName", groupCN);
 
             // distinguishedName を使ってオブジェクト作成
-            String dn = "CN=" + groupCN + ",CN=Users,DC=sandbox,DC=local";
+            String dn = adProperty.getObjectDn(groupCN);
 
             // 管理者の設定
-            attrs.put("managedBy", "CN=Administrator,CN=Users,DC=sandbox,DC=local");
+            attrs.put("managedBy", adProperty.getAdminPrincipal());
 
             ctx.createSubcontext(dn, attrs);
 
@@ -50,7 +57,7 @@ public class GroupManagementService extends ActiveDirectoryService {
     public void deleteGroup(String groupCN) throws NamingException {
         DirContext ctx = connect();
         try {
-            String dn = "CN=" + groupCN + ",CN=Users,DC=sandbox,DC=local";
+            String dn = adProperty.getObjectDn(groupCN);
             ctx.destroySubcontext(dn);
         } finally {
             ctx.close();
@@ -60,8 +67,8 @@ public class GroupManagementService extends ActiveDirectoryService {
     public void renameGroup(String oldCN, String newCN) throws NamingException {
         DirContext ctx = connect();
         try {
-            String oldDn = "CN=" + oldCN + ",CN=Users,DC=sandbox,DC=local";
-            String newDn = "CN=" + newCN + ",CN=Users,DC=sandbox,DC=local";
+            String oldDn = adProperty.getObjectDn(oldCN);
+            String newDn = adProperty.getObjectDn(newCN);
             ctx.rename(oldDn, newDn);
         } finally {
             ctx.close();
