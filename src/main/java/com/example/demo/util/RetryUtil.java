@@ -29,11 +29,10 @@ public class RetryUtil {
      * 3回リトライ、1秒間隔で実行されます
      * 
      * @param operation 実行する操作
-     * @param operationName 操作名（ログ出力用）
      * @return 操作の結果
      * @throws ActiveDirectoryException リトライ後も失敗した場合
      */
-    public static <T> T retryOnError(Supplier<T> operation, String operationName) {
+    public static <T> T retryOnError(Supplier<T> operation) {
         int attempts = 0;
         
         while (attempts < MAX_RETRIES) {
@@ -43,7 +42,7 @@ public class RetryUtil {
                 attempts++;
                 
                 if (isRetryableError(e) && attempts < MAX_RETRIES) {
-                    logger.warn("{} が失敗しました（試行回数: {}）: {}", operationName, attempts, e.getMessage());
+                    logger.warn("操作が失敗しました（試行回数: {}）: {}", attempts, e.getMessage());
                     try {
                         Thread.sleep(RETRY_DELAY);
                     } catch (InterruptedException ie) {
@@ -51,13 +50,13 @@ public class RetryUtil {
                         throw new ActiveDirectoryException("リトライが中断されました", ie);
                     }
                 } else {
-                    logger.error("{} が最終的に失敗しました（試行回数: {}）", operationName, attempts, e);
-                    throw new ActiveDirectoryException(operationName + " が失敗しました", e);
+                    logger.error("操作が最終的に失敗しました（試行回数: {}）", attempts, e);
+                    throw new ActiveDirectoryException("操作が失敗しました", e);
                 }
             }
         }
         
-        throw new ActiveDirectoryException(operationName + " が最大試行回数に達しました");
+        throw new ActiveDirectoryException("操作が最大試行回数に達しました");
     }
     
     /**
