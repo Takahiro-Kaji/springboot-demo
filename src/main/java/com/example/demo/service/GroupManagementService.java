@@ -15,8 +15,7 @@ public class GroupManagementService extends ActiveDirectoryService {
     private AdProperty adProperty;
     
     public void createGroup(String groupCN) throws NamingException {
-        DirContext ctx = connect();
-        try {
+        try (DirContext ctx = connect()) {
             Attributes attrs = new BasicAttributes(true);
 
             // objectClass を定義（必須）
@@ -48,30 +47,21 @@ public class GroupManagementService extends ActiveDirectoryService {
             attrs.put("managedBy", adProperty.getAdminPrincipal());
 
             ctx.createSubcontext(dn, attrs);
-
-        } finally {
-            ctx.close();
         }
     }
 
     public void deleteGroup(String groupCN) throws NamingException {
-        DirContext ctx = connect();
-        try {
+        try (DirContext ctx = connect()) {
             String dn = adProperty.getObjectDn(groupCN);
             ctx.destroySubcontext(dn);
-        } finally {
-            ctx.close();
         }
     }
 
     public void renameGroup(String oldCN, String newCN) throws NamingException {
-        DirContext ctx = connect();
-        try {
+        try (DirContext ctx = connect()) {
             String oldDn = adProperty.getObjectDn(oldCN);
             String newDn = adProperty.getObjectDn(newCN);
             ctx.rename(oldDn, newDn);
-        } finally {
-            ctx.close();
         }
     }
 }

@@ -16,8 +16,7 @@ public class GroupMembershipService extends ActiveDirectoryService {
     private AdProperty adProperty;
     
     private String findUserDN(String userCN) throws NamingException {
-        DirContext ctx = connect();
-        try {
+        try (DirContext ctx = connect()) {
             String searchBase = adProperty.getUsersDn();
             String searchFilter = "(&(objectClass=user)(cn=" + userCN + "))";
             
@@ -33,8 +32,6 @@ public class GroupMembershipService extends ActiveDirectoryService {
             } else {
                 throw new NamingException("User with CN '" + userCN + "' not found");
             }
-        } finally {
-            ctx.close();
         }
     }
     
@@ -42,8 +39,7 @@ public class GroupMembershipService extends ActiveDirectoryService {
      * 複数のユーザーCNを指定して、対応するDNを一括検索
      */
     private List<String> findMultipleUserDNs(List<String> userCNs) throws NamingException {
-        DirContext ctx = connect();
-        try {
+        try (DirContext ctx = connect()) {
             List<String> userDNs = new ArrayList<>();
             Map<String, String> userCNToDN = new HashMap<>();
             
@@ -92,8 +88,6 @@ public class GroupMembershipService extends ActiveDirectoryService {
             }
             
             return userDNs;
-        } finally {
-            ctx.close();
         }
     }
     
@@ -101,8 +95,7 @@ public class GroupMembershipService extends ActiveDirectoryService {
      * 複数のユーザーを一度にグループに追加
      */
     public void addMultipleUsersToGroup(List<String> userCNs, String groupCN) throws NamingException {
-        DirContext ctx = connect();
-        try {
+        try (DirContext ctx = connect()) {
             String groupDn = "CN=" + groupCN + "," + adProperty.getUsersDn();
             List<String> userDNs = findMultipleUserDNs(userCNs);
             
@@ -115,8 +108,6 @@ public class GroupMembershipService extends ActiveDirectoryService {
             }
             
             ctx.modifyAttributes(groupDn, mods);
-        } finally {
-            ctx.close();
         }
     }
     
@@ -124,8 +115,7 @@ public class GroupMembershipService extends ActiveDirectoryService {
      * 複数のユーザーを一度にグループから削除
      */
     public void removeMultipleUsersFromGroup(List<String> userCNs, String groupCN) throws NamingException {
-        DirContext ctx = connect();
-        try {
+        try (DirContext ctx = connect()) {
             String groupDn = "CN=" + groupCN + "," + adProperty.getUsersDn();
             List<String> userDNs = findMultipleUserDNs(userCNs);
             
@@ -138,36 +128,28 @@ public class GroupMembershipService extends ActiveDirectoryService {
             }
             
             ctx.modifyAttributes(groupDn, mods);
-        } finally {
-            ctx.close();
         }
     }
     
     public void addUserToGroup(String userCN, String groupCN) throws NamingException {
-        DirContext ctx = connect();
-        try {
+        try (DirContext ctx = connect()) {
             String groupDn = "CN=" + groupCN + "," + adProperty.getUsersDn();
             String userDn = findUserDN(userCN);
 
             ModificationItem[] mods = new ModificationItem[1];
             mods[0] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("member", userDn));
             ctx.modifyAttributes(groupDn, mods);
-        } finally {
-            ctx.close();
         }
     }
 
     public void removeUserFromGroup(String userCN, String groupCN) throws NamingException {
-        DirContext ctx = connect();
-        try {
+        try (DirContext ctx = connect()) {
             String groupDn = "CN=" + groupCN + "," + adProperty.getUsersDn();
             String userDn = findUserDN(userCN);
 
             ModificationItem[] mods = new ModificationItem[1];
             mods[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("member", userDn));
             ctx.modifyAttributes(groupDn, mods);
-        } finally {
-            ctx.close();
         }
     }
 }
