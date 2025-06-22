@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 import com.example.demo.config.AdProperty;
+import javax.naming.ldap.LdapContext;
+import com.example.demo.util.RetryUtil;
 
 /**
  * Active Directoryのグループメンバーシップ操作を提供するサービスクラス
@@ -33,8 +35,9 @@ public class GroupMembershipService extends ActiveDirectoryService {
      * @throws NamingException ユーザーが見つからない場合、または検索中にエラーが発生した場合
      */
     private String findUserDN(String userCN) throws NamingException {
-        return executeWithRetry(() -> {
-            try (DirContext ctx = connect()) {
+        return RetryUtil.retryNaming(() -> {
+            LdapContext ctx = connect();
+            try {
                 String searchBase = adProperty.getUsersDn();
                 String searchFilter = "(&(objectClass=user)(cn=" + userCN + "))";
                 
@@ -50,6 +53,8 @@ public class GroupMembershipService extends ActiveDirectoryService {
                 } else {
                     throw new NamingException("User with CN '" + userCN + "' not found");
                 }
+            } finally {
+                ctx.close();
             }
         });
     }
@@ -63,8 +68,9 @@ public class GroupMembershipService extends ActiveDirectoryService {
      * @throws NamingException 一部または全てのユーザーが見つからない場合、または検索中にエラーが発生した場合
      */
     private List<String> findMultipleUserDNs(List<String> userCNs) throws NamingException {
-        return executeWithRetry(() -> {
-            try (DirContext ctx = connect()) {
+        return RetryUtil.retryNaming(() -> {
+            LdapContext ctx = connect();
+            try {
                 List<String> userDNs = new ArrayList<>();
                 Map<String, String> userCNToDN = new HashMap<>();
                 
@@ -113,6 +119,8 @@ public class GroupMembershipService extends ActiveDirectoryService {
                 }
                 
                 return userDNs;
+            } finally {
+                ctx.close();
             }
         });
     }
@@ -130,8 +138,9 @@ public class GroupMembershipService extends ActiveDirectoryService {
         successLog.clear();
         failureLog.clear();
         
-        executeWithRetry(() -> {
-            try (DirContext ctx = connect()) {
+        RetryUtil.retryNaming(() -> {
+            LdapContext ctx = connect();
+            try {
                 String groupDn = "CN=" + groupCN + "," + adProperty.getUsersDn();
                 List<String> userDNs = findMultipleUserDNs(userCNs);
                 
@@ -146,7 +155,7 @@ public class GroupMembershipService extends ActiveDirectoryService {
                         ModificationItem[] mods = new ModificationItem[batch.size()];
                         int index = 0;
                         for (String userDN : batch) {
-                            mods[index] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("member", userDN));
+                            mods[index] = new ModificationItem(LdapContext.ADD_ATTRIBUTE, new BasicAttribute("member", userDN));
                             index++;
                         }
                         
@@ -161,6 +170,9 @@ public class GroupMembershipService extends ActiveDirectoryService {
                         throw e; // リトライのために例外を再スロー
                     }
                 }
+                return null;
+            } finally {
+                ctx.close();
             }
         });
     }
@@ -178,8 +190,9 @@ public class GroupMembershipService extends ActiveDirectoryService {
         successLog.clear();
         failureLog.clear();
         
-        executeWithRetry(() -> {
-            try (DirContext ctx = connect()) {
+        RetryUtil.retryNaming(() -> {
+            LdapContext ctx = connect();
+            try {
                 String groupDn = "CN=" + groupCN + "," + adProperty.getUsersDn();
                 List<String> userDNs = findMultipleUserDNs(userCNs);
                 
@@ -194,7 +207,7 @@ public class GroupMembershipService extends ActiveDirectoryService {
                         ModificationItem[] mods = new ModificationItem[batch.size()];
                         int index = 0;
                         for (String userDN : batch) {
-                            mods[index] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("member", userDN));
+                            mods[index] = new ModificationItem(LdapContext.REMOVE_ATTRIBUTE, new BasicAttribute("member", userDN));
                             index++;
                         }
                         
@@ -209,6 +222,9 @@ public class GroupMembershipService extends ActiveDirectoryService {
                         throw e; // リトライのために例外を再スロー
                     }
                 }
+                return null;
+            } finally {
+                ctx.close();
             }
         });
     }
@@ -221,14 +237,18 @@ public class GroupMembershipService extends ActiveDirectoryService {
      * @throws NamingException ユーザーまたはグループが見つからない場合、または操作中にエラーが発生した場合
      */
     public void addUserToGroup(String userCN, String groupCN) throws NamingException {
-        executeWithRetry(() -> {
-            try (DirContext ctx = connect()) {
+        RetryUtil.retryNaming(() -> {
+            LdapContext ctx = connect();
+            try {
                 String groupDn = "CN=" + groupCN + "," + adProperty.getUsersDn();
                 String userDn = findUserDN(userCN);
 
                 ModificationItem[] mods = new ModificationItem[1];
-                mods[0] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("member", userDn));
+                mods[0] = new ModificationItem(LdapContext.ADD_ATTRIBUTE, new BasicAttribute("member", userDn));
                 ctx.modifyAttributes(groupDn, mods);
+                return null;
+            } finally {
+                ctx.close();
             }
         });
     }
@@ -241,14 +261,18 @@ public class GroupMembershipService extends ActiveDirectoryService {
      * @throws NamingException ユーザーまたはグループが見つからない場合、または操作中にエラーが発生した場合
      */
     public void removeUserFromGroup(String userCN, String groupCN) throws NamingException {
-        executeWithRetry(() -> {
-            try (DirContext ctx = connect()) {
+        RetryUtil.retryNaming(() -> {
+            LdapContext ctx = connect();
+            try {
                 String groupDn = "CN=" + groupCN + "," + adProperty.getUsersDn();
                 String userDn = findUserDN(userCN);
 
                 ModificationItem[] mods = new ModificationItem[1];
-                mods[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("member", userDn));
+                mods[0] = new ModificationItem(LdapContext.REMOVE_ATTRIBUTE, new BasicAttribute("member", userDn));
                 ctx.modifyAttributes(groupDn, mods);
+                return null;
+            } finally {
+                ctx.close();
             }
         });
     }

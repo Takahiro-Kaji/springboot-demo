@@ -7,7 +7,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.config.AdProperty;
+import com.example.demo.util.RetryUtil;
 import java.util.*;
+import javax.naming.ldap.LdapContext;
+import javax.naming.ldap.LdapContext;
+import javax.naming.ldap.InitialLdapContext;
+import javax.naming.ldap.PagedResultsControl;
+import javax.naming.ldap.PagedResultsResponseControl;
+import javax.naming.ldap.Control;
+import javax.naming.ldap.PagedResultsControl;
+
 
 /**
  * Active Directoryのグループ管理操作を提供するサービスクラス
@@ -34,8 +43,9 @@ public class GroupManagementService extends ActiveDirectoryService {
      * @throws NamingException グループ作成中にエラーが発生した場合、または同名のグループが既に存在する場合
      */
     public void createGroup(String groupCN) throws NamingException {
-        executeWithRetry(() -> {
-            try (DirContext ctx = connect()) {
+        RetryUtil.retryNaming(() -> {
+            LdapContext ctx = connect();
+            try {
                 Attributes attrs = new BasicAttributes(true);
 
                 // objectClass を定義（必須）
@@ -67,6 +77,9 @@ public class GroupManagementService extends ActiveDirectoryService {
                 attrs.put("managedBy", adProperty.getAdminPrincipal());
 
                 ctx.createSubcontext(dn, attrs);
+                return null;
+            } finally {
+                ctx.close();
             }
         });
     }
@@ -79,10 +92,14 @@ public class GroupManagementService extends ActiveDirectoryService {
      * @throws NamingException グループが見つからない場合、または削除中にエラーが発生した場合
      */
     public void deleteGroup(String groupCN) throws NamingException {
-        executeWithRetry(() -> {
-            try (DirContext ctx = connect()) {
+        RetryUtil.retryNaming(() -> {
+            LdapContext ctx = connect();
+            try {
                 String dn = adProperty.getObjectDn(groupCN);
                 ctx.destroySubcontext(dn);
+                return null;
+            } finally {
+                ctx.close();
             }
         });
     }
@@ -95,11 +112,15 @@ public class GroupManagementService extends ActiveDirectoryService {
      * @throws NamingException 元のグループが見つからない場合、または新しい名前のグループが既に存在する場合
      */
     public void renameGroup(String oldCN, String newCN) throws NamingException {
-        executeWithRetry(() -> {
-            try (DirContext ctx = connect()) {
+        RetryUtil.retryNaming(() -> {
+            LdapContext ctx = connect();
+            try {
                 String oldDn = adProperty.getObjectDn(oldCN);
                 String newDn = adProperty.getObjectDn(newCN);
                 ctx.rename(oldDn, newDn);
+                return null;
+            } finally {
+                ctx.close();
             }
         });
     }
@@ -113,8 +134,9 @@ public class GroupManagementService extends ActiveDirectoryService {
      * @throws NamingException グループが見つからない場合、または検索中にエラーが発生した場合
      */
     public List<String> getGroupMembers(String groupCN) throws NamingException {
-        return executeWithRetry(() -> {
-            try (DirContext ctx = connect()) {
+        return RetryUtil.retryNaming(() -> {
+            LdapContext ctx = connect();
+            try {
                 String groupDn = adProperty.getObjectDn(groupCN);
                 List<String> allMembers = new ArrayList<>();
                 
@@ -163,6 +185,8 @@ public class GroupManagementService extends ActiveDirectoryService {
                 }
 
                 return allMembers;
+            } finally {
+                ctx.close();
             }
         });
     }
@@ -176,8 +200,9 @@ public class GroupManagementService extends ActiveDirectoryService {
      * @throws NamingException グループが見つからない場合、または検索中にエラーが発生した場合
      */
     public int getGroupMemberCount(String groupCN) throws NamingException {
-        return executeWithRetry(() -> {
-            try (DirContext ctx = connect()) {
+        return RetryUtil.retryNaming(() -> {
+            LdapContext ctx = connect();
+            try {
                 String groupDn = adProperty.getObjectDn(groupCN);
                 int totalCount = 0;
                 int pageSize = 1000;
@@ -225,6 +250,8 @@ public class GroupManagementService extends ActiveDirectoryService {
                 }
 
                 return totalCount;
+            } finally {
+                ctx.close();
             }
         });
     }

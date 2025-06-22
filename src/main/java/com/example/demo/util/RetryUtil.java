@@ -1,14 +1,17 @@
 package com.example.demo.util;
 
-import com.example.demo.exception.ActiveDirectoryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.function.Supplier;
+import javax.naming.NamingException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * リトライ機能を提供するユーティリティクラス
- * 3回リトライ、1秒間隔の固定パターンで動作します
+ * Callable<T>ベースで統一されたリトライ処理を提供します
  */
 public class RetryUtil {
     
@@ -25,48 +28,77 @@ public class RetryUtil {
     private static final long RETRY_DELAY = 1000;
     
     /**
-     * 指定された操作をリトライ可能なエラーが発生した場合にリトライする
-     * 3回リトライ、1秒間隔で実行されます
-     * 
-     * @param operation 実行する操作
-     * @return 操作の結果
-     * @throws ActiveDirectoryException リトライ後も失敗した場合
+     * リトライ例外クラス
      */
-    public static <T> T retryOnError(Supplier<T> operation) {
-        int attempts = 0;
-        
-        while (attempts < MAX_RETRIES) {
+    public static class RetryException extends Exception {
+        public RetryException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+    
+    /**
+     * 指定されたタスクをリトライ可能なエラーが発生した場合にリトライする
+     * 
+     * @param task 実行するタスク
+     * @return タスクの結果
+     * @throws RetryException リトライ後も失敗した場合
+     */
+    public static <T> T retry(Callable<T> task) throws RetryException {
+        int maxAttempts = MAX_RETRIES;
+        List<Exception> exceptions = new ArrayList<>();
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
-                return operation.get();
+                return task.call();
             } catch (Exception e) {
-                attempts++;
-                
-                if (isRetryableError(e) && attempts < MAX_RETRIES) {
-                    logger.warn("操作が失敗しました（試行回数: {}）: {}", attempts, e.getMessage());
+                if (!isRetryable(e)) {
+                    throw new RetryException("Non-retryable exception", e);
+                }
+                exceptions.add(e);
+                if (attempt < maxAttempts) {
+                    logger.warn("操作が失敗しました（試行回数: {}）: {}", attempt, e.getMessage());
                     try {
-                        Thread.sleep(RETRY_DELAY);
+                        TimeUnit.MILLISECONDS.sleep(RETRY_DELAY);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
-                        throw new ActiveDirectoryException("リトライが中断されました", ie);
+                        throw new RetryException("リトライが中断されました", ie);
                     }
-                } else {
-                    logger.error("操作が最終的に失敗しました（試行回数: {}）", attempts, e);
-                    throw new ActiveDirectoryException("操作が失敗しました", e);
                 }
             }
         }
-        
-        throw new ActiveDirectoryException("操作が最大試行回数に達しました");
+
+        Exception lastException = exceptions.get(exceptions.size() - 1);
+        logger.error("操作が最終的に失敗しました（試行回数: {}）", maxAttempts, lastException);
+        throw new RetryException("All retry attempts failed", lastException);
+    }
+    
+    /**
+     * NamingExceptionをスローする可能性のあるタスクをリトライし、最終的にNamingExceptionを再スローする
+     * 
+     * @param task 実行するタスク
+     * @return タスクの結果
+     * @throws NamingException 操作が失敗した場合
+     */
+    public static <T> T retryNaming(Callable<T> task) throws NamingException {
+        try {
+            return retry(task);
+        } catch (RetryException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof NamingException ne) {
+                throw ne;
+            }
+            throw new RuntimeException(e);
+        }
     }
     
     /**
      * リトライ可能なエラーかどうかを判定
      */
-    private static boolean isRetryableError(Exception e) {
-        // 例外の型で判定
-        return e instanceof javax.naming.CommunicationException ||
-               e instanceof javax.naming.ServiceUnavailableException ||
-               e instanceof javax.naming.TimeLimitExceededException ||
-               e instanceof javax.naming.directory.AttributeInUseException;
+    private static boolean isRetryable(Exception e) {
+        Throwable cause = e instanceof RetryException ? e.getCause() : e;
+
+        return cause instanceof javax.naming.CommunicationException
+            || cause instanceof javax.naming.ServiceUnavailableException
+            || cause instanceof javax.naming.TimeLimitExceededException;
     }
 } 
